@@ -10,10 +10,11 @@ import (
 	"github.com/Gardego5/gocfg"
 	"github.com/Gardego5/gocfg/utils"
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 )
 
-type client interface {
+type getSecretValuer interface {
 	GetSecretValue(
 		ctx context.Context,
 		params *secretsmanager.GetSecretValueInput,
@@ -22,9 +23,28 @@ type client interface {
 }
 
 // SecretsManagerLoader loads configuration from AWS Secrets Manager
-func New(client client) gocfg.Loader { return &loader{client: client} }
+func New(client ...getSecretValuer) gocfg.Loader {
+	var c getSecretValuer
+	switch len(client) {
+	case 0:
+		awsConfig, err := config.LoadDefaultConfig(context.Background())
+		if err != nil {
+			panic(err)
+		}
 
-type loader struct{ client client }
+		c = secretsmanager.NewFromConfig(awsConfig)
+
+	case 1:
+		c = client[0]
+
+	case 2:
+		panic("too many arguments")
+	}
+
+	return &loader{client: c}
+}
+
+type loader struct{ client getSecretValuer }
 
 func (s *loader) GocfgLoaderName() string { return "aws/secretsmanager" }
 

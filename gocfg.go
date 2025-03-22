@@ -1,5 +1,4 @@
-// gocfg provides a declarative way to load configuration for you go application
-// from a variety of sources.
+// Gocfg provides a declarative way to load configuration for your go application from a variety of sources.
 package gocfg
 
 import (
@@ -18,9 +17,8 @@ type Loader interface {
 	GocfgLoaderName() string
 }
 
-// Load loads configuration into a struct of type C using the provided loaders
+// Loads configuration into a struct of type C using the provided loaders.
 func Load[C any](ctx context.Context, loaders ...Loader) (config C, err error) {
-	config = *new(C)
 
 	// Get type information for the config struct
 	configValue := reflect.ValueOf(&config).Elem()
@@ -114,4 +112,12 @@ func Load[C any](ctx context.Context, loaders ...Loader) (config C, err error) {
 	}
 
 	return config, nil
+}
+
+func MustLoad[C any](ctx context.Context, loaders ...Loader) C {
+	config, err := Load[C](ctx, loaders...)
+	if err != nil {
+		panic(err)
+	}
+	return config
 }

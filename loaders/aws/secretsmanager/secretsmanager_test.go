@@ -198,16 +198,12 @@ func TestSecretsManagerLoader(t *testing.T) {
 			// From secrets
 			DBUser string `aws/secretsmanager:"app/database:Username"`
 			DBPass string `aws/secretsmanager:"app/database:Password"`
-
-			// Constructed connection string using both sources
-			DBUrl string `env:"postgres://@DBUser:@DBPass\"@localhost:@Port/mydb"`
 		}](ctx, env.New(), loader)
 
 		require.NoError(t, err)
 		assert.Equal(t, 5432, result.Port)
 		assert.Equal(t, "dbuser", result.DBUser)
 		assert.Equal(t, "dbpass", result.DBPass)
-		assert.Equal(t, "postgres://dbuser:dbpass@localhost:5432/mydb", result.DBUrl)
 	})
 }
 

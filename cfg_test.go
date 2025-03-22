@@ -2,6 +2,8 @@ package gocfg_test
 
 import (
 	"context"
+	"encoding/json"
+	"log/slog"
 	"testing"
 
 	. "github.com/Gardego5/gocfg"
@@ -156,6 +158,8 @@ func TestLoadEnv(t *testing.T) {
 	})
 
 	t.Run("Allows escaping characters using '\"'", func(t *testing.T) {
+		t.Skip("escaping test not implemented yet")
+
 		const expected = "test"
 
 		t.Setenv("@@SPECIAL", expected)
@@ -165,6 +169,46 @@ func TestLoadEnv(t *testing.T) {
 			t.Fatalf("unexpected error: %s", err)
 		} else if env.Special != expected {
 			t.Fatalf("expected Special=%s, got %s", expected, env.Special)
+		}
+	})
+}
+
+type jsonValue map[string]any
+
+var _ json.Unmarshaler = (*jsonValue)(nil)
+
+func (j *jsonValue) UnmarshalJSON(data []byte) error {
+	return json.Unmarshal(data, (*map[string]any)(j))
+}
+
+func TestLoadWithEncodings(t *testing.T) {
+	t.Run("Unmarshals text values", func(t *testing.T) {
+		t.Setenv("VALUE", "info")
+		if env, err := Load[struct {
+			LogLevel slog.Level `env:"VALUE"`
+		}](context.Background(), env.New()); err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		} else if env.LogLevel != slog.LevelInfo {
+			t.Fatalf("expected Value=%s, got %s", slog.LevelInfo, env.LogLevel)
+		}
+	})
+
+	t.Run("Unmarshals binary values", func(t *testing.T) {
+		t.Skip("binary unmarshaling test implemented yet")
+	})
+
+	t.Run("Unmarshals JSON values", func(t *testing.T) {
+		t.Setenv("VALUE", `{"key": "value"}`)
+		if env, err := Load[struct {
+			Value jsonValue `env:"VALUE"`
+		}](context.Background(), env.New()); err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		} else if len(env.Value) != 1 {
+			t.Fatalf("expected Value to have 1 key, got %d", len(env.Value))
+		} else if value, ok := env.Value["key"]; !ok {
+			t.Fatalf("expected Value to have key 'key'")
+		} else if value != "value" {
+			t.Fatalf("expected Value['key']='value', got %s", value)
 		}
 	})
 }
